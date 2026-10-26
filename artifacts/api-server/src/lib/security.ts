@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { redisRateLimit } from "./redis";
 
 const windows = new Map<string, { count: number; resetsAt: number }>();
 const WINDOW_MS = 60_000;
@@ -55,13 +56,23 @@ export function requireSameOrigin(
   next();
 }
 
-export function rateLimit(
+export async function rateLimit(
   req: Request,
   res: Response,
   next: NextFunction,
   limit = 120,
-): void {
+): Promise<void> {
   const key = `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${req.path.startsWith("/auth/") ? "auth" : "api"}`;
+  const distributed = await redisRateLimit(key, limit, 60);
+  if (!distributed.success) {
+    res.setHeader("Retry-After", distributed.retryAfter);
+    res.status(429).json({
+      error: "Too many requests. Please wait before trying again.",
+      code: "RATE_LIMITED",
+    });
+    return;
+  }
+
   const now = Date.now();
   let bucket = windows.get(key);
   if (!bucket || bucket.resetsAt <= now) {
