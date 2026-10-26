@@ -237,7 +237,7 @@ function RiskPanel({ report, loading, error, retry }: { report?: RiskReport; loa
       {report.warning && <div className="notice info" style={{ margin: '12px 0' }}><Info size={14}/><span>{report.warning}</span></div>}
       <p className="small muted" style={{ lineHeight: 1.7, margin: '14px 0' }}>{report.methodology || 'Methodology unavailable.'}</p>
       <h3 className="small muted" style={{ margin: '20px 0 3px' }}>Findings · {report.findings?.length ?? 0}</h3>
-      {report.findings?.length ? report.findings.map(f => <div key={f.id} className="finding"><span className={`badge ${f.severity === 'high' || f.severity === 'critical' ? 'red' : f.severity === 'medium' ? 'amber' : ''}`}>{f.severity}</span><h4 className="finding-title">{f.title}</h4><p>{f.explanation}</p><div className="small muted">Evidence: {f.evidence}</div><div className="small muted" style={{ marginTop: 6 }}>Source: {f.source} · Confidence: {Math.round(f.confidence * 100)}% · {formatDate(f.detectedAt)}</div></div>) : <div className="state-box" style={{ padding: '22px 10px' }}><strong>No findings returned</strong><p>No observations are included in this API response.</p></div>}
+      {report.findings?.length ? report.findings.map((f: NonNullable<RiskReport['findings']>[number]) => <div key={f.id} className="finding"><span className={`badge ${f.severity === 'high' || f.severity === 'critical' ? 'red' : f.severity === 'medium' ? 'amber' : ''}`}>{f.severity}</span><h4 className="finding-title">{f.title}</h4><p>{f.explanation}</p><div className="small muted">Evidence: {f.evidence}</div><div className="small muted" style={{ marginTop: 6 }}>Source: {f.source} · Confidence: {Math.round(f.confidence * 100)}% · {formatDate(f.detectedAt)}</div></div>) : <div className="state-box" style={{ padding: '22px 10px' }}><strong>No findings returned</strong><p>No observations are included in this API response.</p></div>}
       <div className="data-row"><span>Sources</span><span>{report.sources?.length ? report.sources.join(' · ') : 'Unavailable'}</span></div><div className="data-row"><span>Updated</span><span>{formatDate(report.lastUpdatedAt)}</span></div>
     </div>
   </section>;
@@ -279,7 +279,7 @@ function DashboardPage() {
   const session = useGetWalletSession();
   const query = useListIdentities({ limit: 50, offset: 0 });
   const walletAddress = session.data?.walletAddress;
-  const myIdentities = useMemo(() => query.data?.items.filter(i => i.creatorWallet === walletAddress) ?? [], [query.data?.items, walletAddress]);
+  const myIdentities = useMemo(() => query.data?.items.filter((i: Identity) => i.creatorWallet === walletAddress) ?? [], [query.data?.items, walletAddress]);
   return <>
     <PageHeader eyebrow="Creator workspace" title="Your identity records" description="Wallet-owned records and session status. Records are filtered from the live public identity list." action={<WalletLogin/>}/>
     {session.isLoading ? <div className="panel"><LoadingRows/></div> : session.isError ? <div className="panel"><ErrorState title="Session status unavailable" message="The wallet session endpoint could not be checked." onRetry={() => void session.refetch()}/></div> : !session.data?.authenticated ? <div className="panel state-box"><div className="state-icon"><KeyRound size={17}/></div><strong>No authenticated wallet session</strong><p>Connect Phantom or Solflare and approve signing a one-time MemeID challenge to view your creator records.</p><WalletLogin/></div> : <>
